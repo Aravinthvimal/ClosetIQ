@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>ClosetIQ</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/studio.css" />
+</head>
+<body>
+
+<!-- ─── SPLASH ─────────────────────────────────────────────── -->
+<div id="splash" class="splash">
+  <div class="splash-inner">
+    <div class="splash-monogram">C</div>
+    <p class="splash-title">ClosetIQ</p>
+    <p class="splash-sub">Your Virtual Wardrobe</p>
+  </div>
+</div>
+
+<!-- ─── APP SHELL ─────────────────────────────────────────── -->
+<div id="app" class="app hidden">
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-brand">
+      <span class="brand-mark">C</span>
+      <span class="brand-name">ClosetIQ</span>
+    </div>
+    <div class="header-actions">
+      <button class="icon-btn" id="themeToggle" title="Toggle theme">
+        <svg id="iconSun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        <svg id="iconMoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="display:none"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <button class="icon-btn" id="settingsBtn" title="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main class="main">
+
+    <!-- ══════════════════════════════════════════════
+         VIEW: WARDROBE
+    ══════════════════════════════════════════════ -->
+    <section id="view-wardrobe" class="view active">
+      <div class="studio-heading"><div><p class="eyebrow">YOUR PERSONAL DRESSING ROOM</p><h1>A little more <em>you.</em></h1><p>A considered wardrobe. Endless possibilities.</p></div><button class="btn-gold" onclick="openAddItem()">＋ Add a garment</button></div>
+      <div class="collection-bar"><span>My wardrobe <span id="wardrobeCount" class="count-badge">0</span></span><span class="collection-note">Collected with intention</span></div>
+
+      <!-- Category tabs -->
+      <div class="cat-tabs-wrap">
+        <div class="cat-tabs" id="catTabs">
+          <button class="cat-tab active" data-cat="shirt">Shirts</button>
+          <button class="cat-tab" data-cat="tshirt">T-Shirts</button>
+          <button class="cat-tab" data-cat="dress">Dresses</button>
+          <button class="cat-tab" data-cat="pants">Pants</button>
+          <button class="cat-tab" data-cat="shoes">Shoes</button>
+          <button class="cat-tab" data-cat="watch">Watch</button>
+          <button class="cat-tab" data-cat="accessory">Accessories</button>
+        </div>
+      </div>
+
+      <!-- Wardrobe scene -->
+      <div class="wardrobe-scene" id="wardrobeScene">
+        <div id="closetCanvas" aria-label="Interactive three-dimensional wardrobe"></div>
+        <div class="scene-caption"><span class="live-dot"></span><span id="sceneStatus">Your dressing room</span></div>
+        <button class="scene-reset" id="resetView">↺ Reset view</button>
+
+        <!-- Decorative wardrobe walls -->
+        <div class="wardrobe-bg">
+          <div class="wardrobe-wall left"></div>
+          <div class="wardrobe-wall right"></div>
+          <div class="wardrobe-ceiling"></div>
+        </div>
+
+        <!-- Clothes rail -->
+        <div class="rail-wrap">
+          <div class="rail-bracket left"></div>
+          <div class="rail"></div>
+          <div class="rail-bracket right"></div>
+        </div>
+
+        <!-- Carousel -->
+        <div class="carousel-viewport" id="carouselViewport">
+          <div class="carousel-track" id="carouselTrack">
+            <!-- Items injected by JS -->
+          </div>
+        </div>
+
+        <!-- Nav arrows -->
+        <button class="carousel-arrow left" id="arrowLeft">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <button class="carousel-arrow right" id="arrowRight">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+
+        <!-- Shelves (visible for pants/shoes) -->
+        <div class="shelf-section" id="shelfSection" style="display:none">
+          <div class="shelf">
+            <div class="shelf-items" id="shelfItems"></div>
+          </div>
+        </div>
+
+        <!-- Empty state -->
+        <div class="wardrobe-empty hidden" id="wardrobeEmpty">
+          <p class="empty-icon">👔</p>
+          <p class="empty-label">Your wardrobe is empty</p>
+          <p class="empty-sub">Tap <strong>+</strong> below to add your first item</p>
+        </div>
+      </div>
+
+      <div class="scene-footnote"><span>Drag to explore · Select a garment below</span><span>Photo textures · Estimated depth</span></div>
+      <div id="garmentGallery" class="garment-gallery"></div>
+
+      <!-- Selected item info strip -->
+      <div class="item-strip" id="itemStrip">
+        <div class="item-strip-inner">
+          <div class="item-strip-name" id="stripName">—</div>
+          <div class="item-strip-meta" id="stripMeta"></div>
+        </div>
+        <div class="item-strip-actions">
+          <button class="strip-btn" id="stripEdit">Edit</button>
+          <button class="strip-btn danger" id="stripDelete">Delete</button>
+        </div>
+      </div>
+
+      <div class="studio-bottom"><div><span class="eyebrow">FROM CAMERA TO CLOSET</span><h2>Your clothes. Every little detail.</h2><p>Upload a photo, isolate your garment, and give it a place in your wardrobe.</p><button class="text-link" onclick="openAddItem()">Bring a piece into your closet ↗</button></div><div class="process-steps"><span><b>01</b> Upload a photograph</span><span><b>02</b> Extract your garment</span><span><b>03</b> Make it part of your day</span></div></div>
+
+    </section>
+
+    <!-- ══════════════════════════════════════════════
+         VIEW: OUTFITS
+    ══════════════════════════════════════════════ -->
+    <section id="view-outfits" class="view">
+      <div class="view-header">
+        <h2 class="view-title">Outfits</h2>
+        <div class="view-header-right">
+          <select class="filter-select" id="outfitFilter">
+            <option value="">All occasions</option>
+            <option value="daily">Daily</option>
+            <option value="smart">Smart Casual</option>
+            <option value="formal">Formal</option>
+            <option value="date">Date Night</option>
+            <option value="travel">Travel</option>
+            <option value="party">Party</option>
+            <option value="gym">Gym</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Pinned outfits -->
+      <div id="pinnedSection" class="outfit-section">
+        <p class="section-label">📌 Pinned</p>
+        <div class="outfit-grid" id="pinnedGrid"></div>
+      </div>
+
+      <!-- All outfits -->
+      <div class="outfit-section">
+        <p class="section-label">All Outfits</p>
+        <div class="outfit-grid" id="outfitGrid"></div>
+      </div>
+
+      <div class="outfits-empty hidden" id="outfitsEmpty">
+        <p class="empty-icon">🧥</p>
+        <p class="empty-label">No outfits yet</p>
+        <p class="empty-sub">Use the Build tab to create your first outfit combination</p>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════
+         VIEW: BUILDER
+    ══════════════════════════════════════════════ -->
+    <section id="view-builder" class="view">
+      <div class="view-header">
+        <h2 class="view-title">Build Outfit</h2>
+      </div>
+
+      <!-- Preview mannequin / flat lay -->
+      <div class="builder-preview" id="builderPreview">
+        <div class="preview-slots">
+          <!-- Col 1: accessory -->
+          <div class="preview-col">
+            <div class="preview-slot" id="previewAccessory">
+              <span class="slot-icon">💍</span>
+              <span class="slot-label">Acc</span>
+            </div>
+          </div>
+          <!-- Col 2: shirt top, pants bottom -->
+          <div class="preview-col">
+            <div class="preview-slot" id="previewTop">
+              <span class="slot-icon">👔</span>
+              <span class="slot-label">Top</span>
+            </div>
+            <div class="preview-slot" id="previewBottom">
+              <span class="slot-icon">👖</span>
+              <span class="slot-label">Bottom</span>
+            </div>
+          </div>
+          <!-- Col 3: watch, shoes -->
+          <div class="preview-col">
+            <div class="preview-slot" id="previewWatch">
+              <span class="slot-icon">⌚</span>
+              <span class="slot-label">Watch</span>
+            </div>
+            <div class="preview-slot" id="previewShoes">
+              <span class="slot-icon">👟</span>
+              <span class="slot-label">Shoes</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Builder selectors -->
+      <div class="builder-selectors">
+        <div class="builder-cat-row" data-cats="shirt,tshirt" id="builderTopRow">
+          <p class="builder-cat-label">Top</p>
+          <div class="builder-item-scroll" id="builderTops"></div>
+        </div>
+        <div class="builder-cat-row" id="builderBottomRow">
+          <p class="builder-cat-label">Bottom</p>
+          <div class="builder-item-scroll" id="builderBottoms"></div>
+        </div>
+        <div class="builder-cat-row" id="builderShoesRow">
+          <p class="builder-cat-label">Shoes</p>
+          <div class="builder-item-scroll" id="builderShoes"></div>
+        </div>
+        <div class="builder-cat-row" id="builderWatchRow">
+          <p class="builder-cat-label">Watch</p>
+          <div class="builder-item-scroll" id="builderWatch"></div>
+        </div>
+        <div class="builder-cat-row" id="builderAccRow">
+          <p class="builder-cat-label">Accessory</p>
+          <div class="builder-item-scroll" id="builderAcc"></div>
+        </div>
+      </div>
+
+      <!-- Save outfit form -->
+      <div class="save-outfit-bar">
+        <input class="text-input" id="outfitNameInput" type="text" placeholder="Outfit name…" maxlength="40" />
+        <select class="filter-select" id="outfitOccasionSelect">
+          <option value="daily">Daily</option>
+          <option value="smart">Smart Casual</option>
+          <option value="formal">Formal</option>
+          <option value="date">Date Night</option>
+          <option value="travel">Travel</option>
+          <option value="party">Party</option>
+          <option value="gym">Gym</option>
+        </select>
+        <button class="btn-gold" id="saveOutfitBtn">Save Outfit</button>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════
+         VIEW: JOURNAL
+    ══════════════════════════════════════════════ -->
+    <section id="view-journal" class="view">
+      <div class="view-header">
+        <h2 class="view-title">Journal</h2>
+        <button class="btn-gold sm" id="logTodayBtn">Log Today</button>
+      </div>
+
+      <div class="journal-list" id="journalList"></div>
+
+      <div class="journal-empty hidden" id="journalEmpty">
+        <p class="empty-icon">📔</p>
+        <p class="empty-label">No entries yet</p>
+        <p class="empty-sub">Log what you wore today to build your style history</p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Bottom Navigation -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" data-view="wardrobe">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="3" width="20" height="18" rx="2"/><line x1="8" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="16" y2="21"/></svg>
+      <span>Wardrobe</span>
+    </button>
+    <button class="nav-item" data-view="outfits">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2L2 7v10l10 5 10-5V7z"/></svg>
+      <span>Outfits</span>
+    </button>
+    <button class="nav-item" data-view="builder">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+      <span>Build</span>
+    </button>
+    <button class="nav-item" data-view="journal">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+      <span>Journal</span>
+    </button>
+  </nav>
+
+</div><!-- /#app -->
+
+<!-- ─── MODALS ──────────────────────────────────────────────── -->
+
+<!-- Add / Edit Item Modal -->
+<div id="itemModal" class="modal-backdrop hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title" id="itemModalTitle">Add Item</h3>
+      <button class="modal-close" id="itemModalClose">×</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Photo upload zone -->
+      <div class="photo-zone" id="photoZone">
+        <div class="photo-preview" id="photoPreview">
+          <img id="photoPreviewImg" src="" alt="" style="display:none" />
+          <div class="photo-placeholder" id="photoPlaceholder">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            <span>Upload photo</span>
+          </div>
+        </div>
+        <input type="file" id="photoInput" accept="image/*" style="display:none" />
+        <div class="photo-actions">
+          <button class="btn-outline sm" id="uploadPhotoBtn">Upload Photo</button>
+          <button class="btn-outline sm" id="removeBgBtn" style="display:none">Re-extract</button>
+        </div>
+        <p class="photo-hint" id="photoStatus" role="status">Upload a photo — background is removed on your device. First use downloads the model once (~50 MB).</p>
+      </div>
+
+      <!-- Form fields -->
+      <div class="form-group">
+        <label class="form-label">Item Name *</label>
+        <input class="text-input" id="itemName" type="text" placeholder="e.g. Maroon Oxford Shirt" maxlength="60" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Category *</label>
+        <select class="filter-select full" id="itemCategory">
+          <option value="shirt">Shirt / Top</option>
+          <option value="tshirt">T-Shirt</option>
+          <option value="dress">Dress</option>
+          <option value="pants">Pants / Bottom</option>
+          <option value="shoes">Shoes</option>
+          <option value="watch">Watch</option>
+          <option value="accessory">Accessory</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Occasions</label>
+        <div class="occasion-chips" id="occasionChips">
+          <label class="chip"><input type="checkbox" value="daily" /><span>Daily</span></label>
+          <label class="chip"><input type="checkbox" value="smart" /><span>Smart Casual</span></label>
+          <label class="chip"><input type="checkbox" value="formal" /><span>Formal</span></label>
+          <label class="chip"><input type="checkbox" value="date" /><span>Date Night</span></label>
+          <label class="chip"><input type="checkbox" value="travel" /><span>Travel</span></label>
+          <label class="chip"><input type="checkbox" value="party" /><span>Party</span></label>
+          <label class="chip"><input type="checkbox" value="gym" /><span>Gym</span></label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <textarea class="text-input" id="itemNotes" rows="2" placeholder="Brand, colour, fit…" maxlength="200"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-outline" id="itemModalCancel">Cancel</button>
+      <button class="btn-gold" id="itemModalSave">Save Item</button>
+    </div>
+  </div>
+</div>
+
+<!-- Log Outfit Modal (journal) -->
+<div id="logModal" class="modal-backdrop hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title">Log Today's Outfit</h3>
+      <button class="modal-close" id="logModalClose">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Date</label>
+        <input class="text-input" id="logDate" type="date" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Select Outfit (optional)</label>
+        <select class="filter-select full" id="logCombo">
+          <option value="">— no saved outfit —</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Occasion</label>
+        <select class="filter-select full" id="logOccasion">
+          <option value="daily">Daily</option>
+          <option value="smart">Smart Casual</option>
+          <option value="formal">Formal</option>
+          <option value="date">Date Night</option>
+          <option value="travel">Travel</option>
+          <option value="party">Party</option>
+          <option value="gym">Gym</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-outline" id="logModalCancel">Cancel</button>
+      <button class="btn-gold" id="logModalSave">Log It</button>
+    </div>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div id="settingsModal" class="modal-backdrop hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title">Settings</h3>
+      <button class="modal-close" id="settingsModalClose">×</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- AI Account -->
+      <p class="form-hint" style="margin-bottom:12px">Connect an AI account to automatically extract outfits and fill in details from photos.</p>
+      <div class="form-group">
+        <label class="form-label">AI Provider</label>
+        <select class="filter-select full" id="settingAiProvider">
+          <option value="">None — manual entry only</option>
+          <option value="claude">Claude (Anthropic)</option>
+          <option value="openai">ChatGPT (OpenAI)</option>
+          <option value="gemini">Gemini (Google AI Studio)</option>
+        </select>
+      </div>
+      <div class="form-group" id="aiKeyGroup" style="display:none">
+        <label class="form-label" id="aiKeyLabel">API Key</label>
+        <input class="text-input" id="settingAiKey" type="password" placeholder="Paste your API key…" autocomplete="off" />
+        <p class="form-hint" style="margin-top:6px">Your key is stored locally on this device only and sent directly to the provider.</p>
+      </div>
+
+      <hr style="border:none;border-top:1px solid var(--border);margin:20px 0" />
+
+      <!-- Supabase -->
+      <p class="form-hint" style="margin-bottom:12px">Connect Supabase to sync your wardrobe across devices.</p>
+      <div class="form-group">
+        <label class="form-label">Supabase Project URL</label>
+        <input class="text-input" id="settingUrl" type="url" placeholder="https://xxxx.supabase.co" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Supabase Anon Key</label>
+        <input class="text-input" id="settingKey" type="text" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6..." />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email (optional — for auth)</label>
+        <input class="text-input" id="settingEmail" type="email" placeholder="you@example.com" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password (optional — for auth)</label>
+        <input class="text-input" id="settingPass" type="password" placeholder="••••••••" />
+      </div>
+      <div class="settings-actions">
+        <button class="btn-outline full" id="testConnectionBtn">Test Connection</button>
+        <button class="btn-outline full danger" id="clearLocalBtn">Clear Local Data</button>
+      </div>
+      <p class="connection-status" id="connectionStatus"></p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-outline" id="settingsCancel">Cancel</button>
+      <button class="btn-gold" id="settingsSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Outfit detail modal -->
+<div id="outfitDetailModal" class="modal-backdrop hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title" id="outfitDetailTitle">Outfit</h3>
+      <button class="modal-close" id="outfitDetailClose">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="outfit-detail-items" id="outfitDetailItems"></div>
+      <div class="outfit-detail-meta" id="outfitDetailMeta"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-outline danger" id="outfitDetailDelete">Delete</button>
+      <button class="btn-gold" id="outfitDetailPin">Pin / Unpin</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="toast hidden"></div>
+
+<!-- Canvas (hidden, for bg removal) -->
+<canvas id="bgCanvas" style="display:none"></canvas>
+
+<script src="js/config.js"></script>
+<script src="js/app.js"></script>
+<script type="module" src="js/studio.js"></script>
+</body>
+</html>

@@ -7,8 +7,15 @@ const path = require('path');
 
 const outPath = path.join(__dirname, '..', 'js', 'env.js');
 
-let SUPABASE_URL = process.env.SUPABASE_URL || '';
-let SUPABASE_KEY = process.env.SUPABASE_KEY || '';
+function sanitize(val = '') {
+  return val
+    .trim()
+    .replace(/^['"`]+/, '')   // strip leading quotes
+    .replace(/['"`].*$/, ''); // strip from first closing quote onwards (removes trailing ;  // comment too)
+}
+
+let SUPABASE_URL = sanitize(process.env.SUPABASE_URL);
+let SUPABASE_KEY = sanitize(process.env.SUPABASE_KEY);
 
 // Fall back to .env file for local dev
 if (!SUPABASE_URL || !SUPABASE_KEY) {
@@ -18,8 +25,8 @@ if (!SUPABASE_URL || !SUPABASE_KEY) {
       const [key, ...rest] = line.split('=');
       if (key && rest.length) {
         const val = rest.join('=').trim();
-        if (key.trim() === 'SUPABASE_URL') SUPABASE_URL = val;
-        if (key.trim() === 'SUPABASE_KEY') SUPABASE_KEY = val;
+        if (key.trim() === 'SUPABASE_URL') SUPABASE_URL = sanitize(val);
+        if (key.trim() === 'SUPABASE_KEY') SUPABASE_KEY = sanitize(val);
       }
     });
   }

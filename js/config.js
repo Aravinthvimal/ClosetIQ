@@ -1,21 +1,29 @@
 // ─────────────────────────────────────────────────────────
 // ClosetIQ — Supabase Configuration
-// Fill in your project URL and anon key from supabase.com
-// Settings can also be saved via the in-app Settings modal.
+// Credentials are loaded from js/env.js (gitignored).
+// For Netlify: set SUPABASE_URL and SUPABASE_KEY as
+// environment variables — netlify.toml generates env.js.
 // ─────────────────────────────────────────────────────────
 
-const DEFAULT_CONFIG = {
-  supabaseUrl: '',   // e.g. https://abcdefgh.supabase.co
-  supabaseKey: '',   // Your anon/public key
-};
+// SUPABASE_URL and SUPABASE_KEY are declared in js/env.js
+// (loaded before this file in index.html)
 
-// Load saved config from localStorage (set via Settings modal)
+// Load config — localStorage overrides env.js values (for dev/testing)
 function loadConfig() {
   try {
     const saved = localStorage.getItem('closetiq_config');
-    if (saved) return { ...DEFAULT_CONFIG, ...JSON.parse(saved) };
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      return {
+        supabaseUrl: parsed.supabaseUrl || (typeof SUPABASE_URL !== 'undefined' ? SUPABASE_URL : ''),
+        supabaseKey: parsed.supabaseKey || (typeof SUPABASE_KEY !== 'undefined' ? SUPABASE_KEY : ''),
+      };
+    }
   } catch (_) {}
-  return { ...DEFAULT_CONFIG };
+  return {
+    supabaseUrl: typeof SUPABASE_URL !== 'undefined' ? SUPABASE_URL : '',
+    supabaseKey: typeof SUPABASE_KEY !== 'undefined' ? SUPABASE_KEY : '',
+  };
 }
 
 function saveConfig(cfg) {

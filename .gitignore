@@ -10,8 +10,22 @@ Thumbs.db
 # Local config overrides
 js/config.local.js
 
+# Environment (contains Supabase credentials — never commit)
+.env
+js/env.js
+js/env.example.js
+
+# Local dev server
+server.cjs
+
+# DB migrations (apply manually via Supabase dashboard)
+migrations/
+
 #Claude
 .claude/
 
 #Node modules
 node_modules/
+
+#SQL
+supabase-schema.sql

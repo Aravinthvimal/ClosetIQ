@@ -13,6 +13,7 @@ window.prepareStudio = function(){
 };
 
 window.refreshStudio = function(){
+  document.getElementById('closetLoading')?.classList.add('hidden');
   const items=State.items.filter(i=>i.category===State.currentCategory);
   document.getElementById('wardrobeCount').textContent=State.items.length;
   const gallery=document.getElementById('garmentGallery');gallery.replaceChildren();

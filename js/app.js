@@ -73,14 +73,20 @@ const ImageStore = (() => {
 })();
 
 // ════════════════════════════════════════════════════════════
+// Auth state (set by initSupabaseClient after login)
+// ════════════════════════════════════════════════════════════
+let _authSession = null;
+
+// ════════════════════════════════════════════════════════════
 // DB — Supabase wrapper (with localStorage fallback)
 // ════════════════════════════════════════════════════════════
 const DB = (() => {
   function headers() {
+    const token = _authSession?.access_token ?? CONFIG.supabaseKey;
     return {
       'Content-Type': 'application/json',
       'apikey': CONFIG.supabaseKey,
-      'Authorization': `Bearer ${CONFIG.supabaseKey}`,
+      'Authorization': `Bearer ${token}`,
       'Prefer': 'return=representation',
     };
   }
@@ -139,8 +145,9 @@ const DB = (() => {
       LOCAL.set('items', items);
       return { ...newItem, img: img ?? null };
     }
+    const payload = _authSession ? { ...item, user_id: _authSession.user.id } : item;
     const res = await fetch(url('items'), {
-      method: 'POST', headers: headers(), body: JSON.stringify(item),
+      method: 'POST', headers: headers(), body: JSON.stringify(payload),
     });
     if (!res.ok) throw new Error(await res.text());
     const data = await res.json();
@@ -1158,12 +1165,6 @@ function showToast(msg, type = '') {
 function openSettings() {
   document.getElementById('settingUrl').value = CONFIG.supabaseUrl || '';
   document.getElementById('settingKey').value = CONFIG.supabaseKey || '';
-  const { provider, key } = AI.getConfig();
-  document.getElementById('settingAiProvider').value = provider;
-  document.getElementById('settingAiKey').value = key;
-  document.getElementById('aiKeyGroup').style.display = provider ? 'block' : 'none';
-  document.getElementById('aiKeyLabel').textContent =
-    provider === 'claude' ? 'Anthropic API Key' : provider === 'openai' ? 'OpenAI API Key' : 'API Key';
   showModal('settingsModal');
 }
 
@@ -1171,9 +1172,6 @@ async function saveSettings() {
   CONFIG.supabaseUrl = document.getElementById('settingUrl').value.trim();
   CONFIG.supabaseKey = document.getElementById('settingKey').value.trim();
   saveConfig({ supabaseUrl: CONFIG.supabaseUrl, supabaseKey: CONFIG.supabaseKey });
-  const aiProvider = document.getElementById('settingAiProvider').value;
-  const aiKey = document.getElementById('settingAiKey').value.trim();
-  AI.saveConfig(aiProvider, aiKey);
   hideModal('settingsModal');
   showToast('Settings saved.', 'success');
   await loadData();
@@ -1277,10 +1275,309 @@ async function loadData() {
 }
 
 // ════════════════════════════════════════════════════════════
+// Auth — Supabase email/password login
+// ════════════════════════════════════════════════════════════
+let _supaClient = null;
+
+function isConfigured() { return !!(CONFIG.supabaseUrl && CONFIG.supabaseKey); }
+
+function initSupabaseClient() {
+  if (!isConfigured() || typeof supabase === 'undefined') return;
+  _supaClient = supabase.createClient(CONFIG.supabaseUrl, CONFIG.supabaseKey);
+}
+
+function waitForAuth() {
+  return new Promise(resolve => {
+    const { data: { subscription } } = _supaClient.auth.onAuthStateChange((event, session) => {
+      if (session) { subscription.unsubscribe(); _authSession = session; resolve(session); }
+    });
+  });
+}
+
+function showAuthModal() {
+  document.getElementById('authModal').classList.remove('hidden');
+  setAuthStatus('', '');
+  document.getElementById('authEmail').focus();
+}
+function hideAuthModal() { document.getElementById('authModal').classList.add('hidden'); }
+
+function setAuthStatus(msg, type) {
+  const el = document.getElementById('authStatus');
+  el.textContent = msg;
+  el.dataset.type = type;
+}
+
+function authReadyState(ready) {
+  document.getElementById('authSigninBtn').disabled = !ready;
+  document.getElementById('authSignupBtn').disabled = !ready;
+  if (ready) {
+    document.getElementById('authSigninBtn').textContent = 'Sign in';
+    document.getElementById('authSignupBtn').textContent = 'Create account';
+  }
+}
+
+function friendlyAuthError(error) {
+  const msg = (error.message || '').toLowerCase();
+  const code = error.code || '';
+  if (code === 'invalid_credentials' || msg.includes('invalid login credentials') || msg.includes('invalid credentials'))
+    return null; // handled inline with contextual prompt
+  if (msg.includes('email not confirmed'))
+    return 'Your email isn\'t confirmed yet. Check your inbox for the confirmation link.';
+  if (msg.includes('user already registered') || msg.includes('already been registered') || code === 'user_already_exists')
+    return 'An account with this email already exists — sign in instead.';
+  if (msg.includes('password') && (msg.includes('6') || msg.includes('weak')))
+    return 'Password must be at least 6 characters.';
+  if (msg.includes('rate limit') || msg.includes('too many'))
+    return 'Too many attempts. Please wait a moment and try again.';
+  if (msg.includes('fetch') || msg.includes('network') || msg.includes('failed to fetch') || msg.includes('networkerror'))
+    return 'Connection failed. Check your internet and try again.';
+  return error.message || 'Something went wrong. Please try again.';
+}
+
+function validateEmail(email) {
+  if (!email) { setAuthStatus('Please enter your email address.', 'error'); return false; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setAuthStatus('Enter a valid email address.', 'error'); return false; }
+  return true;
+}
+
+function togglePasswordVisibility() {
+  const input = document.getElementById('authPassword');
+  const isText = input.type === 'text';
+  input.type = isText ? 'password' : 'text';
+  document.getElementById('eyeOpen').style.display = isText ? 'block' : 'none';
+  document.getElementById('eyeClosed').style.display = isText ? 'none' : 'block';
+}
+
+async function authSignIn() {
+  const email = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPassword').value;
+  if (!validateEmail(email)) return;
+  if (!password) { setAuthStatus('Please enter your password.', 'error'); return; }
+  authReadyState(false);
+  document.getElementById('authSigninBtn').textContent = 'Signing in…';
+  setAuthStatus('', '');
+  try {
+    const { data, error } = await _supaClient.auth.signInWithPassword({ email, password });
+    if (error) {
+      const friendly = friendlyAuthError(error);
+      if (!friendly) {
+        // Invalid credentials — could be wrong password OR no account
+        document.getElementById('authPassword').value = '';
+        setAuthStatus('Incorrect password, or no account found with this email. Try again or create a new account below.', 'error');
+      } else {
+        setAuthStatus(friendly, 'error');
+      }
+      return;
+    }
+    _authSession = data.session;
+    hideAuthModal();
+  } catch (e) {
+    setAuthStatus('Connection failed. Check your internet and try again.', 'error');
+  } finally {
+    authReadyState(true);
+  }
+}
+
+async function authSignUp() {
+  const email = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPassword').value;
+  if (!validateEmail(email)) return;
+  if (!password) { setAuthStatus('Please enter a password.', 'error'); return; }
+  if (password.length < 6) { setAuthStatus('Password must be at least 6 characters.', 'error'); return; }
+  authReadyState(false);
+  document.getElementById('authSignupBtn').textContent = 'Creating account…';
+  setAuthStatus('', '');
+  try {
+    const { data, error } = await _supaClient.auth.signUp({ email, password });
+    if (error) { setAuthStatus(friendlyAuthError(error) || error.message, 'error'); return; }
+    if (data.session) {
+      _authSession = data.session;
+      hideAuthModal();
+    } else {
+      setAuthStatus('Account created! Check your email for a confirmation link, then sign in here.', 'success');
+    }
+  } catch (e) {
+    setAuthStatus('Connection failed. Check your internet and try again.', 'error');
+  } finally {
+    authReadyState(true);
+  }
+}
+
+async function authForgotPassword() {
+  const email = document.getElementById('authEmail').value.trim();
+  if (!validateEmail(email)) { setAuthStatus('Enter your email address above first.', 'error'); return; }
+  setAuthStatus('Sending reset link…', '');
+  document.getElementById('authForgotBtn').disabled = true;
+  try {
+    const { error } = await _supaClient.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
+    if (error) { setAuthStatus(friendlyAuthError(error) || error.message, 'error'); return; }
+    setAuthStatus(`Password reset link sent to ${email}. Check your inbox.`, 'success');
+  } catch (e) {
+    setAuthStatus('Connection failed. Try again.', 'error');
+  } finally {
+    document.getElementById('authForgotBtn').disabled = false;
+  }
+}
+
+async function authSignOut() {
+  if (_supaClient) await _supaClient.auth.signOut();
+  _authSession = null;
+  location.reload();
+}
+
+// ════════════════════════════════════════════════════════════
+// Profile Drawer
+// ════════════════════════════════════════════════════════════
+function openProfileDrawer() {
+  renderProfileDrawer();
+  document.getElementById('profileDrawer').classList.remove('hidden');
+  document.getElementById('profileDrawerBackdrop').classList.remove('hidden');
+  requestAnimationFrame(() => {
+    document.getElementById('profileDrawer').classList.add('open');
+  });
+}
+
+function closeProfileDrawer() {
+  document.getElementById('profileDrawer').classList.remove('open');
+  document.getElementById('profileDrawerBackdrop').classList.add('hidden');
+  setTimeout(() => document.getElementById('profileDrawer').classList.add('hidden'), 300);
+}
+
+function styleIQLevel(score) {
+  if (score >= 90) return 'Exceptional wardrobe — nothing left to add.';
+  if (score >= 75) return 'Well-rounded and versatile.';
+  if (score >= 55) return 'Good foundation, room to grow.';
+  if (score >= 35) return 'Building your capsule wardrobe.';
+  return 'Just getting started — keep adding pieces.';
+}
+
+function renderProfileDrawer() {
+  const session = _authSession;
+  const email = session?.user?.email || '';
+  const createdAt = session?.user?.created_at;
+
+  // Identity
+  document.getElementById('profileAvatar').textContent = email ? email[0].toUpperCase() : '?';
+  document.getElementById('profileEmail').textContent = email;
+  document.getElementById('profileSince').textContent = createdAt
+    ? 'Member since ' + new Date(createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+    : '';
+
+  // Stats
+  const items = State.items || [];
+  const combos = State.combos || [];
+  const journal = State.journal || [];
+  const cats = new Set(items.map(i => i.category));
+  const catCount = cats.size;
+
+  document.getElementById('statItems').textContent = items.length;
+  document.getElementById('statCategories').textContent = `${catCount}/7`;
+  document.getElementById('statOutfits').textContent = combos.length;
+  document.getElementById('statJournal').textContent = journal.length;
+
+  // Style IQ (out of 100)
+  const catScore   = Math.round((catCount / 7) * 40);
+  const itemScore  = Math.round((Math.min(items.length, 20) / 20) * 25);
+  const outfitScore= Math.round((Math.min(combos.length, 10) / 10) * 20);
+  const journalScore=Math.round((Math.min(journal.length, 15) / 15) * 15);
+  const iq = catScore + itemScore + outfitScore + journalScore;
+
+  document.getElementById('statStyleIQ').textContent = iq;
+  document.getElementById('styleIQFill').style.width = iq + '%';
+  document.getElementById('styleIQHint').textContent = styleIQLevel(iq);
+
+  // Reset password status
+  document.getElementById('profilePassStatus').textContent = '';
+  document.getElementById('profileNewPass').value = '';
+  document.getElementById('profileConfirmPass').value = '';
+}
+
+async function profileChangePassword() {
+  const newPass = document.getElementById('profileNewPass').value;
+  const confirmPass = document.getElementById('profileConfirmPass').value;
+  const statusEl = document.getElementById('profilePassStatus');
+  statusEl.dataset.type = '';
+
+  if (!newPass) { statusEl.textContent = 'Enter a new password.'; statusEl.dataset.type = 'error'; return; }
+  if (newPass.length < 6) { statusEl.textContent = 'Password must be at least 6 characters.'; statusEl.dataset.type = 'error'; return; }
+  if (newPass !== confirmPass) { statusEl.textContent = 'Passwords do not match.'; statusEl.dataset.type = 'error'; return; }
+
+  document.getElementById('profileChangePassBtn').disabled = true;
+  statusEl.textContent = 'Updating…';
+  try {
+    const { error } = await _supaClient.auth.updateUser({ password: newPass });
+    if (error) { statusEl.textContent = error.message; statusEl.dataset.type = 'error'; }
+    else { statusEl.textContent = 'Password updated successfully.'; statusEl.dataset.type = 'success'; document.getElementById('profileNewPass').value = ''; document.getElementById('profileConfirmPass').value = ''; }
+  } catch (e) {
+    statusEl.textContent = 'Connection failed. Try again.'; statusEl.dataset.type = 'error';
+  } finally {
+    document.getElementById('profileChangePassBtn').disabled = false;
+  }
+}
+
+async function profileDeleteAccount() {
+  const confirmed = confirm('This will permanently delete all your wardrobe data and sign you out. This cannot be undone.\n\nAre you sure?');
+  if (!confirmed) return;
+  const doubleCheck = prompt('Type DELETE to confirm:');
+  if (doubleCheck !== 'DELETE') { showToast('Deletion cancelled.', 'success'); return; }
+
+  try {
+    // Delete all user data via DB
+    if (isConfigured() && _authSession) {
+      const uid = _authSession.user.id;
+      const h = { 'Content-Type':'application/json', 'apikey': CONFIG.supabaseKey, 'Authorization': `Bearer ${_authSession.access_token}` };
+      await Promise.all([
+        fetch(`${CONFIG.supabaseUrl}/rest/v1/items?user_id=eq.${uid}`, { method: 'DELETE', headers: h }),
+        fetch(`${CONFIG.supabaseUrl}/rest/v1/combos?user_id=eq.${uid}`, { method: 'DELETE', headers: h }),
+        fetch(`${CONFIG.supabaseUrl}/rest/v1/journal?user_id=eq.${uid}`, { method: 'DELETE', headers: h }),
+      ]);
+    }
+    // Clear local data
+    ['items','combos','journal','config'].forEach(k => localStorage.removeItem('closetiq_' + k));
+    await _supaClient?.auth.signOut();
+    location.reload();
+  } catch (e) {
+    showToast('Could not delete account. Try again.', 'error');
+  }
+}
+
+// ════════════════════════════════════════════════════════════
 // Boot
 // ════════════════════════════════════════════════════════════
 async function boot() {
   applyTheme();
+  initSupabaseClient();
+
+  // Wire auth buttons immediately — must happen before waitForAuth()
+  document.getElementById('authSigninBtn')?.addEventListener('click', authSignIn);
+  document.getElementById('authSignupBtn')?.addEventListener('click', authSignUp);
+  document.getElementById('authForgotBtn')?.addEventListener('click', authForgotPassword);
+  document.getElementById('authTogglePass')?.addEventListener('click', togglePasswordVisibility);
+  document.getElementById('authEmail')?.addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('authPassword').focus(); });
+  document.getElementById('authPassword')?.addEventListener('keydown', e => { if (e.key === 'Enter') authSignIn(); });
+
+  // Profile drawer
+  document.getElementById('profileBtn')?.addEventListener('click', openProfileDrawer);
+  document.getElementById('profileDrawerClose')?.addEventListener('click', closeProfileDrawer);
+  document.getElementById('profileDrawerBackdrop')?.addEventListener('click', closeProfileDrawer);
+  document.getElementById('profileChangePassBtn')?.addEventListener('click', profileChangePassword);
+  document.getElementById('profileSignOutBtn')?.addEventListener('click', authSignOut);
+  document.getElementById('profileDeleteBtn')?.addEventListener('click', profileDeleteAccount);
+
+  // Auth gate — require login when Supabase is configured
+  if (_supaClient && isConfigured()) {
+    const { data: { session } } = await _supaClient.auth.getSession();
+    _authSession = session;
+    if (!_authSession) {
+      // Hide splash so auth modal is visible
+      document.getElementById('splash').classList.add('out');
+      document.getElementById('app').classList.remove('hidden');
+      showAuthModal();
+      await waitForAuth();
+      hideAuthModal();
+    }
+    document.getElementById('profileBtn')?.classList.remove('hidden');
+  }
 
   // Load data
   await loadData();
@@ -1318,12 +1615,6 @@ async function boot() {
   document.getElementById('settingsCancel').addEventListener('click', () => hideModal('settingsModal'));
   document.getElementById('settingsSave').addEventListener('click', saveSettings);
   document.getElementById('testConnectionBtn').addEventListener('click', testConnection);
-  document.getElementById('settingAiProvider').addEventListener('change', e => {
-    const p = e.target.value;
-    document.getElementById('aiKeyGroup').style.display = p ? 'block' : 'none';
-    document.getElementById('aiKeyLabel').textContent =
-      p === 'claude' ? 'Anthropic API Key' : p === 'openai' ? 'OpenAI API Key' : p === 'gemini' ? 'Google AI Studio API Key' : 'API Key';
-  });
   document.getElementById('clearLocalBtn').addEventListener('click', () => {
     if (confirm('Clear all local data? This cannot be undone.')) {
       ['items','combos','journal','config'].forEach(k => localStorage.removeItem('closetiq_' + k));

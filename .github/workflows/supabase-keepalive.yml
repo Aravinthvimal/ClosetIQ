@@ -9,15 +9,33 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping Supabase
+      - name: Insert keepalive row
         run: |
-          response=$(curl -s -o /dev/null -w "%{http_code}" \
-            "${{ secrets.SUPABASE_URL }}/rest/v1/?select=1" \
+          response=$(curl -s -w "\n%{http_code}" -X POST \
+            "${{ secrets.SUPABASE_URL }}/rest/v1/keepalive" \
             -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}")
-          echo "Response code: $response"
-          if [ "$response" -lt 200 ] || [ "$response" -ge 500 ]; then
-            echo "Ping failed with status $response"
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Content-Type: application/json" \
+            -H "Prefer: return=representation" \
+            -d '{}')
+          body=$(echo "$response" | head -n1)
+          status=$(echo "$response" | tail -n1)
+          echo "Insert status: $status"
+          if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
+            echo "Insert failed: $body"
             exit 1
           fi
-          echo "Supabase is alive"
+          echo "Inserted successfully"
+
+      - name: Delete keepalive rows
+        run: |
+          response=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE \
+            "${{ secrets.SUPABASE_URL }}/rest/v1/keepalive?id=gte.0" \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}")
+          echo "Delete status: $response"
+          if [ "$response" -lt 200 ] || [ "$response" -ge 300 ]; then
+            echo "Delete failed"
+            exit 1
+          fi
+          echo "Cleaned up successfully"

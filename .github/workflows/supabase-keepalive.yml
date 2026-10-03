@@ -2,7 +2,7 @@ name: Supabase Keep-Alive
 
 on:
   schedule:
-    - cron: '0 8 * * *'  # runs daily at 8:00 AM UTC
+    - cron: '30 18 * * *'  # runs daily at 00:00 IST (18:30 UTC)
   workflow_dispatch:       # allows manual trigger from GitHub UI
 
 jobs:
